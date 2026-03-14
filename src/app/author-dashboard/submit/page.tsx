@@ -166,49 +166,62 @@ function ManuscriptSubmitForm() {
       });
     }
 
-    try {
-      const res = await fetch(apiUrl('submissions/'), {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: data,
-      });
+try {
+  const res = await fetch(apiUrl('submissions/'), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: data,
+  });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        let msg = 'Submission failed';
-        if (errData.detail) msg = errData.detail;
-        else if (errData.non_field_errors) msg = errData.non_field_errors[0];
-        else msg = Object.values(errData)[0]?.[0] || msg;
-        throw new Error(msg);
+  if (!res.ok) {
+    // Make TypeScript happy with dynamic object
+    const errData: any = await res.json().catch(() => ({}));
+    let msg = 'Submission failed';
+
+    if (errData?.detail) {
+      msg = errData.detail;
+    } else if (errData?.non_field_errors) {
+      msg = errData.non_field_errors[0];
+    } else {
+      const values = Object.values(errData);
+      if (values.length > 0) {
+        const firstValue: any = values[0];
+        if (Array.isArray(firstValue)) {
+          msg = firstValue[0];
+        }
       }
-
-      setSubmitted(true);
-      setError('');
-
-      // Reset form
-      setFormData({
-        title: '',
-        abstract: '',
-        keywords: '',
-        manuscriptType: 'original-research',
-        files: null,
-        manualAuthors: '',
-        conflictOfInterest: '',
-        acknowledgement: '',
-      });
-      setSelectedAuthors([]);
-      setCorrespondingAuthorId(null);
-
-      setTimeout(() => setSubmitted(false), 10000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit. Please try again.');
-      console.error('Submission error:', err);
-    } finally {
-      setSubmitting(false);
     }
-  };
+
+    throw new Error(msg);
+  }
+
+  setSubmitted(true);
+  setError('');
+
+  // Reset form
+  setFormData({
+    title: '',
+    abstract: '',
+    keywords: '',
+    manuscriptType: 'original-research',
+    files: null,
+    manualAuthors: '',
+    conflictOfInterest: '',
+    acknowledgement: '',
+  });
+  setSelectedAuthors([]);
+  setCorrespondingAuthorId(null);
+
+  setTimeout(() => setSubmitted(false), 10000);
+} catch (err: any) {
+  setError(err.message || 'Failed to submit. Please try again.');
+  console.error('Submission error:', err);
+} finally {
+  setSubmitting(false);
+}
+
 
   if (!mounted || loading) {
     return (
